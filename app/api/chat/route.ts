@@ -1,14 +1,13 @@
-import { VALID_SKILL_IDS, VALID_MODEL_IDS } from "@/lib/config";
+import { VALID_MODEL_IDS, SKILLS } from "@/lib/config";
+
+const ALL_SKILLS = SKILLS.map((s) => ({ type: "custom" as const, skill_id: s.id }));
 
 export const maxDuration = 120;
 
 export async function POST(req: Request) {
   try {
-    const { skillId, model, messages } = await req.json();
+    const { model, messages } = await req.json();
 
-    if (!VALID_SKILL_IDS.includes(skillId)) {
-      return Response.json({ error: "Invalid skill ID" }, { status: 400 });
-    }
     if (!VALID_MODEL_IDS.includes(model)) {
       return Response.json({ error: "Invalid model" }, { status: 400 });
     }
@@ -32,7 +31,7 @@ export async function POST(req: Request) {
         model,
         max_tokens: 4096,
         container: {
-          skills: [{ type: "custom", skill_id: skillId }],
+          skills: ALL_SKILLS,
         },
         messages,
         tools: [{ type: "code_execution_20250825", name: "code_execution" }],
@@ -50,7 +49,7 @@ export async function POST(req: Request) {
           _meta: {
             response_time_ms: elapsed,
             model_used: model,
-            skill_id: skillId,
+            skills: "all (3)",
             timestamp: new Date().toISOString(),
           },
         },
@@ -63,7 +62,7 @@ export async function POST(req: Request) {
       _meta: {
         response_time_ms: elapsed,
         model_used: model,
-        skill_id: skillId,
+        skills: "all (3)",
         timestamp: new Date().toISOString(),
       },
     });

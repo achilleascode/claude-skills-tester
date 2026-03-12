@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { SKILLS, MODELS, type LogEntry, type ChatMessage } from "@/lib/config";
+import { MODELS, type LogEntry, type ChatMessage } from "@/lib/config";
 
 export default function Home() {
-  const [skillId, setSkillId] = useState<string>(SKILLS[0].id);
   const [model, setModel] = useState<string>(MODELS[0].id);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -32,7 +31,6 @@ export default function Home() {
     return { totalIn, totalOut, total: totalIn + totalOut, avgTime, byModel, count: logs.length };
   }, [logs]);
 
-  const skillName = SKILLS.find((s) => s.id === skillId)?.short ?? "";
   const modelName = MODELS.find((m) => m.id === model)?.name ?? "";
 
   async function sendMessage() {
@@ -50,7 +48,6 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          skillId,
           model,
           messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
         }),
@@ -77,8 +74,8 @@ export default function Home() {
       const log: LogEntry = {
         id: crypto.randomUUID(),
         timestamp: data._meta?.timestamp || new Date().toISOString(),
-        skill: skillName,
-        skillId,
+        skill: "all (3)",
+        skillId: "all",
         model: modelName,
         inputTokens: data.usage?.input_tokens ?? 0,
         outputTokens: data.usage?.output_tokens ?? 0,
@@ -113,7 +110,6 @@ export default function Home() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              skillId: latest.skillId,
               model: MODELS.find((m) => m.name === latest.model)?.id ?? model,
               messages: messages.map((m) => ({ role: m.role, content: m.content })),
               containerId: container.id,
@@ -150,17 +146,9 @@ export default function Home() {
       <header className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
         <h1 className="text-lg font-semibold">Claude Skills Tester</h1>
         <div className="flex items-center gap-3">
-          <select
-            value={skillId}
-            onChange={(e) => setSkillId(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm"
-          >
-            {SKILLS.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          <span className="text-xs text-gray-500 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5">
+            3 Skills aktiv
+          </span>
           <select
             value={model}
             onChange={(e) => setModel(e.target.value)}
@@ -188,7 +176,7 @@ export default function Home() {
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.length === 0 && (
           <div className="text-center text-gray-500 mt-20">
-            <p className="text-lg">Skill auswaehlen und Frage stellen</p>
+            <p className="text-lg">Alle 3 Skills aktiv - einfach Frage stellen</p>
             <p className="text-sm mt-1">Logs werden unten angezeigt</p>
           </div>
         )}
