@@ -3,14 +3,20 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { MODELS, type LogEntry, type ChatMessage } from "@/lib/config";
+import { MODELS, calcCost, type LogEntry, type ChatMessage } from "@/lib/config";
 
 export default function Home() {
   const [model, setModel] = useState<string>(MODELS[0].id);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = localStorage.getItem("skill-tester-logs");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [showLogs, setShowLogs] = useState(true);
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -19,18 +25,24 @@ export default function Home() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    try { localStorage.setItem("skill-tester-logs", JSON.stringify(logs)); } catch {}
+  }, [logs]);
+
   const stats = useMemo(() => {
     if (logs.length === 0) return null;
     const totalIn = logs.reduce((s, l) => s + l.inputTokens, 0);
     const totalOut = logs.reduce((s, l) => s + l.outputTokens, 0);
     const avgTime = Math.round(logs.reduce((s, l) => s + l.responseTimeMs, 0) / logs.length);
-    const byModel: Record<string, { count: number; tokens: number }> = {};
+    const totalCost = logs.reduce((s, l) => s + l.cost, 0);
+    const byModel: Record<string, { count: number; tokens: number; cost: number }> = {};
     for (const l of logs) {
-      if (!byModel[l.model]) byModel[l.model] = { count: 0, tokens: 0 };
+      if (!byModel[l.model]) byModel[l.model] = { count: 0, tokens: 0, cost: 0 };
       byModel[l.model].count++;
       byModel[l.model].tokens += l.inputTokens + l.outputTokens;
+      byModel[l.model].cost += l.cost;
     }
-    return { totalIn, totalOut, total: totalIn + totalOut, avgTime, byModel, count: logs.length };
+    return { totalIn, totalOut, total: totalIn + totalOut, avgTime, totalCost, byModel, count: logs.length };
   }, [logs]);
 
   const modelName = MODELS.find((m) => m.id === model)?.name ?? "";
@@ -73,18 +85,21 @@ export default function Home() {
         setMessages((prev) => [...prev, { role: "assistant", content: assistantText }]);
       }
 
+      const inTok = data.usage?.input_tokens ?? 0;
+      const outTok = data.usage?.output_tokens ?? 0;
       const log: LogEntry = {
         id: crypto.randomUUID(),
         timestamp: data._meta?.timestamp || new Date().toISOString(),
         skill: "all (2)",
         skillId: "all",
         model: modelName,
-        inputTokens: data.usage?.input_tokens ?? 0,
-        outputTokens: data.usage?.output_tokens ?? 0,
-        totalTokens: (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0),
+        inputTokens: inTok,
+        outputTokens: outTok,
+        totalTokens: inTok + outTok,
         responseTimeMs: data._meta?.response_time_ms ?? 0,
         userMessage: text,
         assistantMessage: assistantText.slice(0, 200),
+        cost: calcCost(model, inTok, outTok),
         rawResponse: data,
         error: data.error,
       };
@@ -237,19 +252,30 @@ export default function Home() {
           onClick={() => setShowLogs(!showLogs)}
           className="w-full px-4 py-2 text-sm text-gray-400 hover:text-white flex items-center justify-between"
         >
-          <span>Logs ({logs.length} Requests)</span>
-          <span>{showLogs ? "▼" : "▲"}</span>
+          <span>Logs ({logs.length} Requests){stats ? ` · $${stats.totalCost.toFixed(4)}` : ""}</span>
+          <span className="flex items-center gap-2">
+            {logs.length > 0 && (
+              <span
+                onClick={(e) => { e.stopPropagation(); setLogs([]); }}
+                className="text-red-400 hover:text-red-300 text-xs"
+              >
+                Clear
+              </span>
+            )}
+            {showLogs ? "▼" : "▲"}
+          </span>
         </button>
 
         {showLogs && (
           <div className="max-h-80 overflow-y-auto px-4 pb-4">
             {/* Stats */}
             {stats && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3">
                 <StatCard label="Requests" value={stats.count} />
                 <StatCard label="Input Tokens" value={stats.totalIn.toLocaleString()} />
                 <StatCard label="Output Tokens" value={stats.totalOut.toLocaleString()} />
                 <StatCard label="Avg Response" value={`${(stats.avgTime / 1000).toFixed(1)}s`} />
+                <StatCard label="Total Cost" value={`$${stats.totalCost.toFixed(4)}`} />
               </div>
             )}
 
@@ -258,7 +284,7 @@ export default function Home() {
               <div className="flex gap-2 mb-3 flex-wrap">
                 {Object.entries(stats.byModel).map(([m, d]) => (
                   <span key={m} className="text-xs bg-gray-800 border border-gray-700 rounded-lg px-2 py-1">
-                    {m}: {d.count}x / {d.tokens.toLocaleString()} tokens
+                    {m}: {d.count}x / {d.tokens.toLocaleString()} tok / ${d.cost.toFixed(4)}
                   </span>
                 ))}
               </div>
@@ -284,6 +310,7 @@ export default function Home() {
                       <span className="text-gray-400">
                         {log.inputTokens}in / {log.outputTokens}out
                       </span>
+                      <span className="text-green-300">${log.cost.toFixed(4)}</span>
                       <span className="text-yellow-400 ml-auto">{(log.responseTimeMs / 1000).toFixed(1)}s</span>
                     </button>
                     {expandedLog === log.id && (
