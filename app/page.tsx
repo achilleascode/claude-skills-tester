@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { MODELS, type LogEntry, type ChatMessage } from "@/lib/config";
 
 export default function Home() {
@@ -183,13 +185,17 @@ export default function Home() {
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
-              className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
+              className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${
                 msg.role === "user"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-800 text-gray-100 border border-gray-700"
+                  ? "bg-blue-600 text-white whitespace-pre-wrap"
+                  : "bg-gray-800 text-gray-100 border border-gray-700 prose prose-invert prose-sm max-w-none prose-headings:text-sm prose-headings:font-bold prose-headings:mt-3 prose-headings:mb-1 prose-p:my-1 prose-table:text-xs prose-th:px-2 prose-th:py-1 prose-th:bg-gray-700 prose-td:px-2 prose-td:py-1 prose-td:border-gray-600 prose-pre:bg-gray-950 prose-pre:text-xs prose-code:text-blue-300 prose-hr:border-gray-600 prose-li:my-0.5"
               }`}
             >
-              {msg.content}
+              {msg.role === "user" ? (
+                msg.content
+              ) : (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+              )}
             </div>
           </div>
         ))}
