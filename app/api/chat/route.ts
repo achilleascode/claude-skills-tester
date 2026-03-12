@@ -49,7 +49,7 @@ export async function POST(req: Request) {
           _meta: {
             response_time_ms: elapsed,
             model_used: model,
-            skills: "all (3)",
+            skills: "all (2)",
             timestamp: new Date().toISOString(),
           },
         },
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
       _meta: {
         response_time_ms: elapsed,
         model_used: model,
-        skills: "all (3)",
+        skills: "all (2)",
         timestamp: new Date().toISOString(),
       },
     });

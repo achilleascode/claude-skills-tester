@@ -74,7 +74,7 @@ export default function Home() {
       const log: LogEntry = {
         id: crypto.randomUUID(),
         timestamp: data._meta?.timestamp || new Date().toISOString(),
-        skill: "all (3)",
+        skill: "all (2)",
         skillId: "all",
         model: modelName,
         inputTokens: data.usage?.input_tokens ?? 0,
@@ -147,7 +147,7 @@ export default function Home() {
         <h1 className="text-lg font-semibold">Claude Skills Tester</h1>
         <div className="flex items-center gap-3">
           <span className="text-xs text-gray-500 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5">
-            3 Skills aktiv
+            2 Skills aktiv
           </span>
           <select
             value={model}
@@ -176,7 +176,7 @@ export default function Home() {
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.length === 0 && (
           <div className="text-center text-gray-500 mt-20">
-            <p className="text-lg">Alle 3 Skills aktiv - einfach Frage stellen</p>
+            <p className="text-lg">Alle 2 Skills aktiv - einfach Frage stellen</p>
             <p className="text-sm mt-1">Logs werden unten angezeigt</p>
           </div>
         )}

@@ -1,6 +1,5 @@
 export const SKILLS = [
   { id: "skill_013bS3UrB9m56xT7FvPy8MLE", name: "E-Rechnung Expert", short: "e-rechnung" },
-  { id: "skill_01L7YpGATN9q1cG72dv82X9c", name: "EasyFirma Support v3", short: "support-v3" },
   { id: "skill_0171xYggujXVgtev83j3EWs7", name: "EasyFirma Support", short: "support" },
 ] as const;
 
